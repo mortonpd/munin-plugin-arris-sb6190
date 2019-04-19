@@ -4,23 +4,21 @@
 : <<=cut
 
 =head1 NAME
-
 arris-sb6190 - Plugin to measure status on Arris Modem
 
-=head1 NOTES
+=head1 CONFIGURATION
+You can append '_corrected' and '_uncorrectables' to the plugin filename for Packet statistics
 
-Uses default IP address and status pages for modem
+=head1 NOTES
+Uses default IP address and status pages for modem: 192.168.100.1
 
 =head1 AUTHOR
-
 Peter Morton
 
 =head1 LICENSE
-
 GPLv2
 
 =head1 MAGIC MARKERS
-
  #%# family=auto
  #%# capabilities=autoconf
 
