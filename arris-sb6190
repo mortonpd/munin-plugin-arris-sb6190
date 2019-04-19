@@ -1,11 +1,11 @@
 #!/bin/bash
 # -*- bash -*-
 
-: << =cut
+: <<=cut
 
 =head1 NAME
 
-arris-sb6190-snr - Plugin to measure Corrected on Arris Modem
+arris-sb6190 - Plugin to measure status on Arris Modem
 
 =head1 NOTES
 
@@ -27,51 +27,72 @@ GPLv2
 =cut
 
 . $MUNIN_LIBDIR/plugins/plugin.sh
+arris=${0##*/}
+mode=${arris##*_}
+graph_period=minute
 
 if [ "$1" = "autoconf" ]; then
-        echo yes
-        exit 0
+	echo yes
+	exit 0
 fi
+
+case "$mode" in
+corrected)
+	column=8
+	;;
+
+uncorrectables)
+	column=9
+	;;
+
+*)
+	mode=snr
+	;;
+esac
 
 if [ "$1" = "config" ]; then
-	  echo "graph_title Arris SB6190 Corrected Packets"
-          echo "graph_period minute"
-	  echo "graph_vlabel corrected / ${graph_period}"
-	  echo "graph_scale no"
-	  echo "graph_total Total"
-	  echo "graph_category arris"
-          for i in {1..28};
-	  do
-		echo "downcorrected${i}.label Downstream ${i}"
-		echo "downcorrected${i}.type COUNTER"
-		if [ "${i}" = "1" ]; then
-			echo "downcorrected${i}.draw AREA" 
-		else 
-			echo "downcorrected${i}.draw STACK"
+	if [ "$mode" = "snr" ]; then
+		echo "graph_title Arris SB6190 Signal to Noise (dB)"
+		echo "graph_vlabel dB (decibels)"
+	else
+		echo "graph_title Arris SB6190 $mode"
+		echo "graph_period $graph_period"
+		echo "graph_vlabel $mode / ${graph_period}"
+		echo "graph_scale no"
+		echo "graph_total Total"
+		echo "graph_category arris"
+	fi
+
+	for i in {1..28}; do
+
+		if [ "$mode" = "snr" ]; then
+			echo "downsnr${i}.label Downstream ${i}"
+		else
+			echo "down$mode${i}.label Downstream ${i}"
+			echo "down$mode${i}.type COUNTER"
+			if [ "${i}" = "1" ]; then
+				echo "down$mode${i}.draw AREA"
+			else
+				echo "down$mode${i}.draw STACK"
+			fi
 		fi
-          done
-	  exit 0;
+	done
+	exit 0
 fi
 
-dl_status="`wget -q -O - http://192.168.100.1/cgi-bin/status | grep 256QAM`"
+dl_status="$(wget -q -O - http://192.168.100.1/cgi-bin/status | grep 256QAM)"
 
 echo $dl_status | sed -e 's/\/tr>/tr>\n/g' | while read -r line; do
 
-  if [ ! -z "$line" ]; then
-     channel="`echo $line | xmllint --html -xpath "//tr/td[1]/text()" - `"
-     corrected="`echo $line | xmllint --html -xpath "//tr/td[8]/text()" - `"
-     echo downcorrected${channel}.value ${corrected}
-  fi
+	if [ ! -z "$line" ]; then
+		channel="$(echo $line | xmllint --html -xpath "//tr/td[1]/text()" -)"
+		if [ "$mode" = "snr" ]; then
+			snr="$(echo $line | xmllint --html -xpath "//tr/td[7]/text()" - | tr ' dB' ' ')"
+			echo downsnr${channel}.value ${snr}
+		else
+			value="$(echo $line | xmllint --html -xpath "//tr/td[$column]/text()" -)"
+			echo down$mode${channel}.value ${value}
+		fi
+	fi
 
-done 
-
-
-#Channel
-#Lock_Status  
-#Modulation  
-#Channel_ID  
-#Frequency  
-#Power  
-#SNR  
-#Corrected  
-#Uncorrectables
+done
