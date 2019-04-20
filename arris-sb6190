@@ -58,8 +58,8 @@ if [ "$1" = "config" ]; then
 		echo "graph_vlabel $mode / ${graph_period}"
 		echo "graph_scale no"
 		echo "graph_total Total"
-		echo "graph_category arris"
 	fi
+	echo "graph_category arris"
 
 	for i in {1..28}; do
 
