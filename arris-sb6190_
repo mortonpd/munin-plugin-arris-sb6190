@@ -20,7 +20,7 @@ GPLv2
 
 =head1 MAGIC MARKERS
  #%# family=auto
- #%# capabilities=autoconf
+ #%# capabilities=autoconf suggest
 
 =cut
 
@@ -33,6 +33,14 @@ if [ "$1" = "autoconf" ]; then
 	echo yes
 	exit 0
 fi
+
+if [ "$1" = "suggest" ]; then
+	echo $arris"snr"
+	echo $arris"corrected"
+	echo $arris"uncorrectables"
+	exit 0
+fi
+
 
 case "$mode" in
 corrected)
