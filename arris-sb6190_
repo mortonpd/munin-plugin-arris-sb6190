@@ -51,15 +51,32 @@ uncorrectables)
 	column=9
 	;;
 
+snr)
+	column=7
+	;;
+
+dpl)
+	column=6
+	;;
+
 *)
 	mode=snr
+	column=7
 	;;
 esac
 
+#################
+# Configuration #
+#################
+
 if [ "$1" = "config" ]; then
+        echo host_name arris-sb6190
 	if [ "$mode" = "snr" ]; then
 		echo "graph_title Arris SB6190 Signal to Noise (dB)"
 		echo "graph_vlabel dB (decibels)"
+	elif [ "$mode" = "dpl" ]; then
+                echo "graph_title Arris SB6190 Downstream Power (dBmV)"
+                echo "graph_vlabel dBmV (decibels relative to one millivolt)"
 	else
 		echo "graph_title Arris SB6190 $mode"
 		echo "graph_period $graph_period"
@@ -67,12 +84,14 @@ if [ "$1" = "config" ]; then
 		echo "graph_scale no"
 		echo "graph_total Total"
 	fi
-	echo "graph_category arris"
+	echo "graph_category modem"
 
 	for i in {1..28}; do
 
-		if [ "$mode" = "snr" ]; then
+		if [ "$mode" = "snr" ] || [ "$mode" = "dpl" ]; then
 			echo "downsnr${i}.label Downstream ${i}"
+                        print_warning downsnr${i}
+                        print_critical downsnr${i}
 		else
 			echo "down$mode${i}.label Downstream ${i}"
 			echo "down$mode${i}.type COUNTER"
@@ -81,10 +100,16 @@ if [ "$1" = "config" ]; then
 			else
 				echo "down$mode${i}.draw STACK"
 			fi
+			print_warning down$mode${i}
+                        print_critical down$mode${i}
 		fi
 	done
 	exit 0
 fi
+
+#####################
+# End Configuration #
+#####################
 
 dl_status="$(wget -q -O - http://192.168.100.1/cgi-bin/status | grep 256QAM)"
 
@@ -93,8 +118,11 @@ echo $dl_status | sed -e 's/\/tr>/tr>\n/g' | while read -r line; do
 	if [ ! -z "$line" ]; then
 		channel="$(echo $line | xmllint --html -xpath "//tr/td[1]/text()" -)"
 		if [ "$mode" = "snr" ]; then
-			snr="$(echo $line | xmllint --html -xpath "//tr/td[7]/text()" - | tr ' dB' ' ')"
+			snr="$(echo $line | xmllint --html -xpath "//tr/td[$column]/text()" - | tr ' dB' ' ')"
 			echo downsnr${channel}.value ${snr}
+		elif [ "$mode" = "dpl" ]; then
+                        dpl="$(echo $line | xmllint --html -xpath "//tr/td[$column]/text()" - | tr ' dBmV' ' ')"
+                        echo downsnr${channel}.value ${dpl}
 		else
 			value="$(echo $line | xmllint --html -xpath "//tr/td[$column]/text()" -)"
 			echo down$mode${channel}.value ${value}
